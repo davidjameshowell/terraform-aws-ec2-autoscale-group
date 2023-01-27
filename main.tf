@@ -105,6 +105,8 @@ resource "aws_launch_template" "default" {
     http_endpoint               = (var.metadata_http_endpoint_enabled) ? "enabled" : "disabled"
     http_put_response_hop_limit = var.metadata_http_put_response_hop_limit
     http_tokens                 = (var.metadata_http_tokens_required) ? "required" : "optional"
+    http_protocol_ipv6          = (var.metadata_http_protocol_ipv6_enabled) ? "enabled" : "disabled"
+    instance_metadata_tags      = (var.metadata_instance_metadata_tags_enabled) ? "enabled" : "disabled"
   }
 
   dynamic "tag_specifications" {
@@ -137,6 +139,10 @@ locals {
       launch_template        = local.launch_template_block
       override               = var.mixed_instances_policy.override
   })
+  tags = {
+    for key, value in module.this.tags :
+    key => value if value != "" && value != null
+  }
 }
 
 resource "aws_autoscaling_group" "default" {
@@ -237,17 +243,23 @@ resource "aws_autoscaling_group" "default" {
       pool_state                  = try(warm_pool.value.pool_state, null)
       min_size                    = try(warm_pool.value.min_size, null)
       max_group_prepared_capacity = try(warm_pool.value.max_group_prepared_capacity, null)
+      dynamic "instance_reuse_policy" {
+        for_each = var.instance_reuse_policy != null ? [var.instance_reuse_policy] : []
+        content {
+          reuse_on_scale_in = instance_reuse_policy.value.reuse_on_scale_in
+        }
+      }
     }
   }
 
-  tags = flatten([
-    for key in keys(module.this.tags) :
-    {
-      key                 = key
-      value               = module.this.tags[key]
+  dynamic "tag" {
+    for_each = local.tags
+    content {
+      key                 = tag.key
+      value               = tag.value
       propagate_at_launch = true
     }
-  ])
+  }
 
   lifecycle {
     create_before_destroy = true

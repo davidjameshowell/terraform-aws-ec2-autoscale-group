@@ -414,6 +414,18 @@ variable "metadata_http_tokens_required" {
   description = "Set true to require IMDS session tokens, disabling Instance Metadata Service Version 1."
 }
 
+variable "metadata_http_protocol_ipv6_enabled" {
+  type        = bool
+  default     = false
+  description = "Set true to enable IPv6 in the launch template."
+}
+
+variable "metadata_instance_metadata_tags_enabled" {
+  type        = bool
+  default     = false
+  description = "Set true to enable metadata tags in the launch template."
+}
+
 variable "tag_specifications_resource_types" {
   type        = set(string)
   default     = ["instance", "volume"]
@@ -439,5 +451,13 @@ variable "warm_pool" {
     max_group_prepared_capacity = number
   })
   description = "If this block is configured, add a Warm Pool to the specified Auto Scaling group. See [warm_pool](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/autoscaling_group#warm_pool)."
+  default     = null
+}
+
+variable "instance_reuse_policy" {
+  type = object({
+    reuse_on_scale_in = bool
+  })
+  description = "If warm pool and this block are configured, instances in the Auto Scaling group can be returned to the warm pool on scale in. The default is to terminate instances in the Auto Scaling group when the group scales in."
   default     = null
 }
